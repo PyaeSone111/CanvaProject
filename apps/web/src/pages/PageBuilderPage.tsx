@@ -7,6 +7,9 @@ import { PageTreePanel } from '@/components/pagebuilder/PageTreePanel';
 import { BlockPropertiesPanel } from '@/components/pagebuilder/BlockPropertiesPanel';
 import { PageCanvas } from '@/components/pagebuilder/PageCanvas';
 import { PublishDialog } from '@/components/editor/PublishDialog';
+import { ExportDialog } from '@/components/editor/ExportDialog';
+import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
+import { downloadJson } from '@/lib/export';
 import type { RowNode, BlockType } from '@/types';
 
 export function PageBuilderPage() {
@@ -15,6 +18,8 @@ export function PageBuilderPage() {
   const store = usePageBuilderStore();
   const [zoom, setZoom] = useState(100);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   useEffect(() => {
     store.loadAll();
@@ -93,6 +98,8 @@ export function PageBuilderPage() {
       onAutoSave={handleAutoSave}
       onPreview={() => navigate(`/preview/page/${doc.id}`)}
       onPublish={() => setPublishOpen(true)}
+      onExport={() => setExportOpen(true)}
+      onShowShortcuts={() => setShortcutsOpen(true)}
       addPanel={
         <AddBlockPanel
           onAddRow={store.addRow}
@@ -144,6 +151,17 @@ export function PageBuilderPage() {
       publicUrl={publicUrl}
       onPublish={() => store.publish(doc.id)}
       onUnpublish={() => store.unpublish(doc.id)}
+    />
+    <ExportDialog
+      open={exportOpen}
+      onOpenChange={setExportOpen}
+      docType="page"
+      docName={doc.name}
+      onExport={() => downloadJson(doc, `${doc.name.replace(/\s+/g, '-').toLowerCase()}.json`)}
+    />
+    <KeyboardShortcutsDialog
+      open={shortcutsOpen}
+      onOpenChange={setShortcutsOpen}
     />
     </>
   );

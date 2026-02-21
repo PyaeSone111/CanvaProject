@@ -8,6 +8,8 @@ import {
   Globe,
   Check,
   Loader2,
+  Download,
+  Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -28,6 +30,8 @@ interface EditorTopBarProps {
   onRedo: () => void;
   onPreview?: () => void;
   onPublish?: () => void;
+  onExport?: () => void;
+  onShowShortcuts?: () => void;
 }
 
 export function EditorTopBar({
@@ -41,6 +45,8 @@ export function EditorTopBar({
   onRedo,
   onPreview,
   onPublish,
+  onExport,
+  onShowShortcuts,
 }: EditorTopBarProps) {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -164,6 +170,32 @@ export function EditorTopBar({
       </div>
 
       <Separator orientation="vertical" className="h-6" />
+
+      {/* Export */}
+      {onExport && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onExport}>
+              <Download className="h-4 w-4" />
+              <span className="sr-only">Export</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Export project</TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Shortcuts */}
+      {onShowShortcuts && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onShowShortcuts}>
+              <Keyboard className="h-4 w-4" />
+              <span className="sr-only">Keyboard shortcuts</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Keyboard shortcuts (?)</TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Preview */}
       {onPreview && (

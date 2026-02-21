@@ -11,6 +11,8 @@ import { PortfolioPreviewPage } from '@/pages/PortfolioPreviewPage';
 import { PublishedDesignPage } from '@/pages/PublishedDesignPage';
 import { PublishedPortfolioPage } from '@/pages/PublishedPortfolioPage';
 import { PublishedPagePage } from '@/pages/PublishedPagePage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 
 function App() {
   return (
@@ -20,7 +22,7 @@ function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       {/* Editor routes render their own full-screen layout */}
@@ -37,6 +39,9 @@ function App() {
       <Route path="/d/:id" element={<PublishedDesignPage />} />
       <Route path="/portfolio/:id" element={<PublishedPortfolioPage />} />
       <Route path="/p/:slug" element={<PublishedPagePage />} />
+
+      {/* 404 */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

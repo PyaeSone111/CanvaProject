@@ -7,6 +7,9 @@ import { LayersPanel } from '@/components/editor/LayersPanel';
 import { PropertiesPanel } from '@/components/editor/PropertiesPanel';
 import { MockCanvas } from '@/components/editor/MockCanvas';
 import { PublishDialog } from '@/components/editor/PublishDialog';
+import { ExportDialog } from '@/components/editor/ExportDialog';
+import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
+import { downloadJson } from '@/lib/export';
 
 export function DesignEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +17,8 @@ export function DesignEditorPage() {
   const store = useDesignStore();
   const [zoom, setZoom] = useState(80);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Load data and set current doc
   useEffect(() => {
@@ -69,6 +74,8 @@ export function DesignEditorPage() {
       onAutoSave={handleAutoSave}
       onPreview={() => navigate(`/preview/design/${doc.id}`)}
       onPublish={() => setPublishOpen(true)}
+      onExport={() => setExportOpen(true)}
+      onShowShortcuts={() => setShortcutsOpen(true)}
       addPanel={<AddPanel onAddObject={store.addObject} />}
       layersPanel={
         <LayersPanel
@@ -116,6 +123,17 @@ export function DesignEditorPage() {
       publicUrl={publicUrl}
       onPublish={() => store.publish(doc.id)}
       onUnpublish={() => store.unpublish(doc.id)}
+    />
+    <ExportDialog
+      open={exportOpen}
+      onOpenChange={setExportOpen}
+      docType="design"
+      docName={doc.name}
+      onExport={() => downloadJson(doc, `${doc.name.replace(/\s+/g, '-').toLowerCase()}.json`)}
+    />
+    <KeyboardShortcutsDialog
+      open={shortcutsOpen}
+      onOpenChange={setShortcutsOpen}
     />
     </>
   );

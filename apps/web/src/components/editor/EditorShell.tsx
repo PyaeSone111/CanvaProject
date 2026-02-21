@@ -19,6 +19,8 @@ interface EditorShellProps {
   onRedo: () => void;
   onPreview?: () => void;
   onPublish?: () => void;
+  onExport?: () => void;
+  onShowShortcuts?: () => void;
 
   // Zoom
   zoom: number;
@@ -47,6 +49,8 @@ export function EditorShell({
   onRedo,
   onPreview,
   onPublish,
+  onExport,
+  onShowShortcuts,
   zoom,
   onZoomChange,
   addPanel,
@@ -84,8 +88,12 @@ export function EditorShell({
         e.preventDefault();
         onAutoSave();
       }
+      if (e.key === '?' && onShowShortcuts) {
+        e.preventDefault();
+        onShowShortcuts();
+      }
     },
-    [onUndo, onRedo, onAutoSave]
+    [onUndo, onRedo, onAutoSave, onShowShortcuts]
   );
 
   useEffect(() => {
@@ -108,6 +116,8 @@ export function EditorShell({
           onRedo={onRedo}
           onPreview={onPreview}
           onPublish={onPublish}
+          onExport={onExport}
+          onShowShortcuts={onShowShortcuts}
         />
 
         {/* Main area: left panel + canvas + right panel */}
