@@ -1,0 +1,17 @@
+# Optional: run with golangci-lint (e.g. golangci-lint run)
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gofmt
+    - goimports
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  gofmt:
+    simplify: true
