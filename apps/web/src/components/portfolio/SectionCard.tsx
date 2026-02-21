@@ -1,4 +1,6 @@
 import { GripVertical, Trash2, Layout, ImageIcon, Type, MousePointerClick, Columns3 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SectionBlock } from '@/types';
@@ -27,11 +29,29 @@ interface SectionCardProps {
 }
 
 export function SectionCard({ section, isSelected, onSelect, onRemove }: SectionCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
+  };
+
   const Icon = sectionIcons[section.type] || Type;
   const label = sectionLabels[section.type] || section.type;
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       role="button"
       tabIndex={0}
       onClick={onSelect}
@@ -48,7 +68,15 @@ export function SectionCard({ section, isSelected, onSelect, onRemove }: Section
           : 'border-border hover:border-ar-cloud hover:bg-muted/50'
       )}
     >
-      <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-grab shrink-0" />
+      <button
+        type="button"
+        className="h-5 w-5 flex items-center justify-center shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
       <div
         className={cn(
           'h-9 w-9 rounded-md flex items-center justify-center shrink-0',

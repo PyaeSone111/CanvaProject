@@ -29,7 +29,11 @@ interface EditorShellProps {
   // Panels
   addPanel: ReactNode;
   layersPanel: ReactNode;
+  assetsPanel?: ReactNode;
   propertiesPanel: ReactNode;
+
+  // Delete selected element
+  onDelete?: () => void;
 
   // Canvas
   children: ReactNode;
@@ -55,7 +59,9 @@ export function EditorShell({
   onZoomChange,
   addPanel,
   layersPanel,
+  assetsPanel,
   propertiesPanel,
+  onDelete,
   children,
   onAutoSave,
 }: EditorShellProps) {
@@ -88,12 +94,20 @@ export function EditorShell({
         e.preventDefault();
         onAutoSave();
       }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
+        // Don't delete if user is typing in an input/textarea
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !(e.target as HTMLElement).isContentEditable) {
+          e.preventDefault();
+          onDelete();
+        }
+      }
       if (e.key === '?' && onShowShortcuts) {
         e.preventDefault();
         onShowShortcuts();
       }
     },
-    [onUndo, onRedo, onAutoSave, onShowShortcuts]
+    [onUndo, onRedo, onAutoSave, onShowShortcuts, onDelete]
   );
 
   useEffect(() => {
@@ -145,10 +159,14 @@ export function EditorShell({
               <TabsContent value="layers" className="flex-1 overflow-hidden m-0">
                 {layersPanel}
               </TabsContent>
-              <TabsContent value="assets" className="flex-1 overflow-auto m-0 p-3">
-                <p className="text-xs text-muted-foreground">
-                  Asset uploads coming soon. Use the Add panel to insert placeholder elements.
-                </p>
+              <TabsContent value="assets" className="flex-1 overflow-hidden m-0">
+                {assetsPanel || (
+                  <div className="p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Asset uploads coming soon. Use the Add panel to insert placeholder elements.
+                    </p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </aside>

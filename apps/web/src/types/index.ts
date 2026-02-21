@@ -89,6 +89,19 @@ export interface BlockNode {
   style: Record<string, string>;
 }
 
+// ── Asset (mock uploads) ────────────────────────────────────────────
+export interface AssetItem {
+  id: string;
+  name: string;
+  type: 'image' | 'icon' | 'shape';
+  url: string;
+  thumbnailUrl: string;
+  width: number;
+  height: number;
+  size: number; // bytes
+  uploadedAt: string;
+}
+
 // ── Shared utility ──────────────────────────────────────────────────
 export type DocumentType = 'design' | 'portfolio' | 'page';
 

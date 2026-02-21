@@ -4,12 +4,14 @@ import { useDesignStore } from '@/stores/designStore';
 import { EditorShell } from '@/components/editor/EditorShell';
 import { AddPanel } from '@/components/editor/AddPanel';
 import { LayersPanel } from '@/components/editor/LayersPanel';
+import { AssetsPanel } from '@/components/editor/AssetsPanel';
 import { PropertiesPanel } from '@/components/editor/PropertiesPanel';
 import { MockCanvas } from '@/components/editor/MockCanvas';
 import { PublishDialog } from '@/components/editor/PublishDialog';
 import { ExportDialog } from '@/components/editor/ExportDialog';
 import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
 import { downloadJson } from '@/lib/export';
+import type { AssetItem } from '@/types';
 
 export function DesignEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +48,33 @@ export function DesignEditorPage() {
     store.autoSave();
   }, [store]);
 
+  const handleDeleteSelected = useCallback(() => {
+    if (store.selectedObjectId) {
+      store.removeObject(store.selectedObjectId);
+    }
+  }, [store]);
+
+  const handleInsertAsset = useCallback(
+    (asset: AssetItem) => {
+      store.addObject({
+        id: crypto.randomUUID(),
+        type: 'image',
+        x: 100 + Math.random() * 200,
+        y: 100 + Math.random() * 200,
+        width: Math.min(asset.width, 300),
+        height: Math.min(asset.height, 300),
+        fill: 'transparent',
+        stroke: '#777E89',
+        strokeWidth: 1,
+        opacity: 1,
+        rotation: 0,
+        src: asset.url,
+        name: asset.name,
+      });
+    },
+    [store]
+  );
+
   if (!doc) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -76,7 +105,9 @@ export function DesignEditorPage() {
       onPublish={() => setPublishOpen(true)}
       onExport={() => setExportOpen(true)}
       onShowShortcuts={() => setShortcutsOpen(true)}
+      onDelete={handleDeleteSelected}
       addPanel={<AddPanel onAddObject={store.addObject} />}
+      assetsPanel={<AssetsPanel onInsertAsset={handleInsertAsset} />}
       layersPanel={
         <LayersPanel
           objects={doc.objects}
@@ -91,6 +122,7 @@ export function DesignEditorPage() {
             if (obj) store.updateObject(objId, { locked: !obj.locked });
           }}
           onRemove={store.removeObject}
+          onReorder={store.reorderObjects}
         />
       }
       propertiesPanel={

@@ -6,6 +6,7 @@ import { AddBlockPanel } from '@/components/pagebuilder/AddBlockPanel';
 import { PageTreePanel } from '@/components/pagebuilder/PageTreePanel';
 import { BlockPropertiesPanel } from '@/components/pagebuilder/BlockPropertiesPanel';
 import { PageCanvas } from '@/components/pagebuilder/PageCanvas';
+import { AssetsPanel } from '@/components/editor/AssetsPanel';
 import { PublishDialog } from '@/components/editor/PublishDialog';
 import { ExportDialog } from '@/components/editor/ExportDialog';
 import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
@@ -66,6 +67,17 @@ export function PageBuilderPage() {
     return { rowId: null, colId: null };
   }, [doc, store.selectedNodeId]);
 
+  const handleDeleteSelected = useCallback(() => {
+    if (!doc || !store.selectedNodeId) return;
+    if (store.selectedNodeType === 'row') {
+      store.removeRow(store.selectedNodeId);
+    } else if (store.selectedNodeType === 'column' && selectedContext.rowId) {
+      store.removeColumn(selectedContext.rowId, store.selectedNodeId);
+    } else if (store.selectedNodeType === 'block' && selectedContext.rowId && selectedContext.colId) {
+      store.removeBlock(selectedContext.rowId, selectedContext.colId, store.selectedNodeId);
+    }
+  }, [doc, store, selectedContext]);
+
   if (!doc) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -100,6 +112,8 @@ export function PageBuilderPage() {
       onPublish={() => setPublishOpen(true)}
       onExport={() => setExportOpen(true)}
       onShowShortcuts={() => setShortcutsOpen(true)}
+      onDelete={handleDeleteSelected}
+      assetsPanel={<AssetsPanel />}
       addPanel={
         <AddBlockPanel
           onAddRow={store.addRow}
@@ -121,6 +135,7 @@ export function PageBuilderPage() {
           onRemoveRow={store.removeRow}
           onRemoveColumn={(rowId, colId) => store.removeColumn(rowId, colId)}
           onRemoveBlock={(rowId, colId, blockId) => store.removeBlock(rowId, colId, blockId)}
+          onReorderRows={store.reorderRows}
         />
       }
       propertiesPanel={

@@ -11,9 +11,25 @@ import { PublishDialog } from '@/components/editor/PublishDialog';
 import { ExportDialog } from '@/components/editor/ExportDialog';
 import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
 import { downloadJson } from '@/lib/export';
+import { AssetsPanel } from '@/components/editor/AssetsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { FileText, Plus, Layers } from 'lucide-react';
 
 export function PortfolioEditorPage() {
@@ -48,6 +64,30 @@ export function PortfolioEditorPage() {
   const handleAutoSave = useCallback(() => {
     store.autoSave();
   }, [store]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleSectionDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      if (!activePage) return;
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = activePage.sections.findIndex((s) => s.id === active.id);
+      const newIndex = activePage.sections.findIndex((s) => s.id === over.id);
+      const reordered = arrayMove(activePage.sections, oldIndex, newIndex);
+      store.reorderSections(activePage.id, reordered);
+    },
+    [activePage, store]
+  );
+
+  const handleDeleteSelected = useCallback(() => {
+    if (activePage && store.selectedSectionId) {
+      store.removeSection(activePage.id, store.selectedSectionId);
+    }
+  }, [activePage, store]);
 
   if (!doc) {
     return (
@@ -97,16 +137,21 @@ export function PortfolioEditorPage() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Sections ({activePage?.sections.length || 0})
               </p>
-              {activePage?.sections.map((section) => (
-                <SectionCard
-                  key={section.id}
-                  section={section}
-                  isSelected={store.selectedSectionId === section.id}
-                  onSelect={() => store.selectSection(section.id)}
-                  onRemove={() => store.removeSection(activePage.id, section.id)}
-                />
-              ))}
-              {(!activePage || activePage.sections.length === 0) && (
+              {activePage && activePage.sections.length > 0 ? (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+                  <SortableContext items={activePage.sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                    {activePage.sections.map((section) => (
+                      <SectionCard
+                        key={section.id}
+                        section={section}
+                        isSelected={store.selectedSectionId === section.id}
+                        onSelect={() => store.selectSection(section.id)}
+                        onRemove={() => store.removeSection(activePage.id, section.id)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              ) : (
                 <p className="text-xs text-muted-foreground text-center py-4">
                   No sections yet. Use the Sections tab to add them.
                 </p>
@@ -197,22 +242,32 @@ export function PortfolioEditorPage() {
       onPublish={() => setPublishOpen(true)}
       onExport={() => setExportOpen(true)}
       onShowShortcuts={() => setShortcutsOpen(true)}
+      onDelete={handleDeleteSelected}
       addPanel={leftAddPanel}
+      assetsPanel={<AssetsPanel />}
       layersPanel={
         <ScrollArea className="h-full">
           <div className="p-3 flex flex-col gap-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Sections ({activePage?.sections.length || 0})
             </p>
-            {activePage?.sections.map((section) => (
-              <SectionCard
-                key={section.id}
-                section={section}
-                isSelected={store.selectedSectionId === section.id}
-                onSelect={() => store.selectSection(section.id)}
-                onRemove={() => store.removeSection(activePage.id, section.id)}
-              />
-            ))}
+            {activePage && activePage.sections.length > 0 ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+                <SortableContext items={activePage.sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                  {activePage.sections.map((section) => (
+                    <SectionCard
+                      key={section.id}
+                      section={section}
+                      isSelected={store.selectedSectionId === section.id}
+                      onSelect={() => store.selectSection(section.id)}
+                      onRemove={() => store.removeSection(activePage.id, section.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-4">No sections.</p>
+            )}
           </div>
         </ScrollArea>
       }
