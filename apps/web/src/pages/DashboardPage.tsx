@@ -10,10 +10,17 @@ import {
   List,
   ArrowUpDown,
   Globe,
+  LayoutTemplate,
+  BarChart3,
+  ExternalLink,
+  Copy,
+  Check,
+  Eye,
 } from 'lucide-react';
 import { useDesignStore } from '@/stores/designStore';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 import { usePageBuilderStore } from '@/stores/pageBuilderStore';
+import { usePublishStore } from '@/stores/publishStore';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +34,8 @@ import {
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { CreateDialog } from '@/components/dashboard/CreateDialog';
-import type { DocumentType } from '@/types';
+import { TemplatePicker } from '@/components/dashboard/TemplatePicker';
+import type { DocumentType, PublishedRecord } from '@/types';
 
 type SortKey = 'updated' | 'name' | 'created';
 type ViewMode = 'grid' | 'list';
@@ -48,16 +56,20 @@ export function DashboardPage() {
   const [createType, setCreateType] = useState<DocumentType>('design');
   const [sortBy, setSortBy] = useState<SortKey>('updated');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateType, setTemplateType] = useState<'portfolio' | 'page'>('portfolio');
+  const [copied, setCopied] = useState<string | null>(null);
 
-  // Stores
   const designStore = useDesignStore();
   const portfolioStore = usePortfolioStore();
   const pageStore = usePageBuilderStore();
+  const publishStore = usePublishStore();
 
   useEffect(() => {
     designStore.loadAll();
     portfolioStore.loadAll();
     pageStore.loadAll();
+    publishStore.loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -65,20 +77,19 @@ export function DashboardPage() {
     setSearchParams({ tab });
   };
 
-  // Sort helper
-  const sortFn = (a: { name: string; updatedAt: string; createdAt: string }, b: { name: string; updatedAt: string; createdAt: string }) => {
-    if (sortBy === 'name') return a.name.localeCompare(b.name);
-    if (sortBy === 'created') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  const sortFn = (a: { name?: string; title?: string; updatedAt: string; createdAt?: string }, b: { name?: string; title?: string; updatedAt: string; createdAt?: string }) => {
+    const aName = a.name || a.title || '';
+    const bName = b.name || b.title || '';
+    if (sortBy === 'name') return aName.localeCompare(bName);
+    if (sortBy === 'created') return new Date(b.createdAt || b.updatedAt).getTime() - new Date(a.createdAt || a.updatedAt).getTime();
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   };
 
-  // Filtered + sorted lists
   const filteredDesigns = useMemo(
     () =>
       designStore.documents
         .filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
         .sort(sortFn),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [designStore.documents, search, sortBy]
   );
 
@@ -87,7 +98,6 @@ export function DashboardPage() {
       portfolioStore.documents
         .filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
         .sort(sortFn),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [portfolioStore.documents, search, sortBy]
   );
 
@@ -96,8 +106,15 @@ export function DashboardPage() {
       pageStore.documents
         .filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
         .sort(sortFn),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pageStore.documents, search, sortBy]
+  );
+
+  const filteredPublished = useMemo(
+    () =>
+      publishStore.records
+        .filter((r) => r.title.toLowerCase().includes(search.toLowerCase()))
+        .sort(sortFn),
+    [publishStore.records, search, sortBy]
   );
 
   const handleCreate = (name: string, width?: number, height?: number) => {
@@ -115,14 +132,25 @@ export function DashboardPage() {
     setCreateOpen(true);
   };
 
+  const openTemplate = (type: 'portfolio' | 'page') => {
+    setTemplateType(type);
+    setTemplateOpen(true);
+  };
+
+  const handleCopyUrl = async (url: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {}
+  };
+
   // Stats
   const totalDesigns = designStore.documents.length;
   const totalPortfolios = portfolioStore.documents.length;
   const totalPages = pageStore.documents.length;
-  const publishedCount =
-    designStore.documents.filter((d) => d.published).length +
-    portfolioStore.documents.filter((d) => d.published).length +
-    pageStore.documents.filter((d) => d.published).length;
+  const publishedCount = publishStore.records.filter((r) => r.isPublished).length;
+  const totalViews = publishStore.totalViews7d();
 
   const sortLabel: Record<SortKey, string> = {
     updated: 'Last modified',
@@ -130,7 +158,6 @@ export function DashboardPage() {
     created: 'Date created',
   };
 
-  // List view render
   const renderListItem = (item: { id: string; name: string; updatedAt: string; docType: DocumentType; subtitle: string; published: boolean }) => (
     <button
       key={item.id}
@@ -162,19 +189,95 @@ export function DashboardPage() {
     </button>
   );
 
+  const renderPublishedCard = (record: PublishedRecord) => {
+    const baseUrl = record.type === 'portfolio' ? '/p/' : '/site/';
+    const publicUrl = `${window.location.origin}${baseUrl}${record.slug}`;
+    const isCopied = copied === record.id;
+
+    return (
+      <div
+        key={record.id}
+        className="rounded-lg border bg-background overflow-hidden"
+      >
+        {/* Mini preview header */}
+        <div
+          className="h-24 flex items-center justify-center"
+          style={{ backgroundColor: record.theme.bgColor }}
+        >
+          <p
+            className="text-sm font-bold truncate px-4"
+            style={{ color: record.theme.textColor, fontFamily: record.theme.fontFamily }}
+          >
+            {record.title}
+          </p>
+        </div>
+
+        <div className="p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium truncate">{record.title}</p>
+            <Badge
+              variant="secondary"
+              className={`text-[10px] px-1.5 py-0 shrink-0 ${
+                record.isPublished
+                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {record.isPublished ? 'Live' : 'Unpublished'}
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Globe className="h-3 w-3 shrink-0" />
+            <code className="truncate">{baseUrl}{record.slug}</code>
+          </div>
+
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span>Type: {record.type}</span>
+            <span className="mx-1">|</span>
+            <span>{formatDate(record.updatedAt)}</span>
+          </div>
+
+          <div className="flex gap-1.5 pt-1">
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 flex-1" onClick={() => handleCopyUrl(publicUrl, record.id)}>
+              {isCopied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+              {isCopied ? 'Copied' : 'Copy URL'}
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" asChild>
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3 w-3" />
+                Open
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Analytics data
+  const dailyViews = publishStore.dailyViews7d();
+  const topPages = publishStore.topPages7d();
+  const maxDayViews = Math.max(...dailyViews.map((d) => d.views), 1);
+
   return (
     <div>
       {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         {[
           { label: 'Designs', value: totalDesigns, icon: Palette, color: 'bg-ar-metal' },
           { label: 'Portfolios', value: totalPortfolios, icon: Briefcase, color: 'bg-ar-bay' },
           { label: 'Pages', value: totalPages, icon: FileCode, color: 'bg-ar-iron' },
           { label: 'Published', value: publishedCount, icon: Globe, color: 'bg-emerald-500/20' },
+          { label: 'Views (7d)', value: totalViews, icon: Eye, color: 'bg-blue-500/20' },
         ].map((stat) => (
           <div key={stat.label} className="flex items-center gap-3 rounded-lg border px-4 py-3">
             <div className={`h-9 w-9 rounded-md ${stat.color} flex items-center justify-center shrink-0`}>
-              <stat.icon className={`h-4 w-4 ${stat.label === 'Published' ? 'text-emerald-600' : 'text-[#ADB3BC]'}`} />
+              <stat.icon className={`h-4 w-4 ${
+                stat.label === 'Published' ? 'text-emerald-600' :
+                stat.label === 'Views (7d)' ? 'text-blue-600' :
+                'text-[#ADB3BC]'
+              }`} />
             </div>
             <div>
               <p className="text-xl font-semibold leading-none">{stat.value}</p>
@@ -192,7 +295,7 @@ export function DashboardPage() {
             Manage your designs, portfolios, and pages.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
           <Button size="sm" onClick={() => openCreate('design')}>
             <Plus className="mr-1.5 h-4 w-4" />
             New Design
@@ -205,10 +308,28 @@ export function DashboardPage() {
             <Plus className="mr-1.5 h-4 w-4" />
             Page
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="secondary" className="gap-1.5">
+                <LayoutTemplate className="h-4 w-4" />
+                From Template
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openTemplate('portfolio')}>
+                <Briefcase className="mr-2 h-4 w-4" />
+                Portfolio Template
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openTemplate('page')}>
+                <FileCode className="mr-2 h-4 w-4" />
+                Page Template
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Toolbar: search + sort + view */}
+      {/* Toolbar */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -220,7 +341,6 @@ export function DashboardPage() {
           />
         </div>
 
-        {/* Sort */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-9 gap-1.5 shrink-0">
@@ -235,7 +355,6 @@ export function DashboardPage() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* View toggle */}
         <div className="flex rounded-md border overflow-hidden shrink-0">
           <button
             onClick={() => setViewMode('grid')}
@@ -268,23 +387,26 @@ export function DashboardPage() {
           <TabsTrigger value="designs" className="gap-1.5">
             <Palette className="h-3.5 w-3.5" />
             Designs
-            <span className="ml-1 text-xs text-muted-foreground">
-              ({filteredDesigns.length})
-            </span>
+            <span className="ml-1 text-xs text-muted-foreground">({filteredDesigns.length})</span>
           </TabsTrigger>
           <TabsTrigger value="portfolios" className="gap-1.5">
             <Briefcase className="h-3.5 w-3.5" />
             Portfolios
-            <span className="ml-1 text-xs text-muted-foreground">
-              ({filteredPortfolios.length})
-            </span>
+            <span className="ml-1 text-xs text-muted-foreground">({filteredPortfolios.length})</span>
           </TabsTrigger>
           <TabsTrigger value="pages" className="gap-1.5">
             <FileCode className="h-3.5 w-3.5" />
             Pages
-            <span className="ml-1 text-xs text-muted-foreground">
-              ({filteredPages.length})
-            </span>
+            <span className="ml-1 text-xs text-muted-foreground">({filteredPages.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="published" className="gap-1.5">
+            <Globe className="h-3.5 w-3.5" />
+            Published
+            <span className="ml-1 text-xs text-muted-foreground">({filteredPublished.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Analytics
           </TabsTrigger>
         </TabsList>
 
@@ -390,14 +512,108 @@ export function DashboardPage() {
             </div>
           )}
         </TabsContent>
+
+        {/* Published Tab */}
+        <TabsContent value="published">
+          {filteredPublished.length === 0 ? (
+            <EmptyState
+              icon={Globe}
+              title="Nothing published yet"
+              description="Publish a portfolio or page from the editor to see it here."
+              actionLabel="Go to Designs"
+              onAction={() => setTab('designs')}
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+              {filteredPublished.map(renderPublishedCard)}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <div className="mt-4 space-y-6">
+            {/* Views chart */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold">Page Views</h3>
+                  <p className="text-xs text-muted-foreground">Last 7 days</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{totalViews}</p>
+                  <p className="text-xs text-muted-foreground">total views</p>
+                </div>
+              </div>
+
+              {/* Simple bar chart */}
+              <div className="flex items-end gap-2 h-32">
+                {dailyViews.map((d) => (
+                  <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">{d.views}</span>
+                    <div
+                      className="w-full rounded-t transition-all"
+                      style={{
+                        height: `${Math.max((d.views / maxDayViews) * 100, 4)}%`,
+                        backgroundColor: 'hsl(var(--primary))',
+                        opacity: 0.7,
+                      }}
+                    />
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top pages */}
+            <div className="rounded-lg border p-4">
+              <h3 className="text-sm font-semibold mb-3">Top Pages</h3>
+              {topPages.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No page views recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {topPages.map((page, i) => (
+                    <div key={page.slug} className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-muted-foreground w-5 shrink-0">
+                        {i + 1}.
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs truncate">{page.slug}</code>
+                        </div>
+                        <div
+                          className="h-1.5 rounded-full mt-1 transition-all"
+                          style={{
+                            width: `${(page.views / topPages[0].views) * 100}%`,
+                            backgroundColor: 'hsl(var(--primary))',
+                            opacity: 0.5,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium shrink-0">
+                        {page.views} views
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
 
-      {/* Create dialog */}
       <CreateDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
         docType={createType}
         onCreate={handleCreate}
+      />
+      <TemplatePicker
+        open={templateOpen}
+        onOpenChange={setTemplateOpen}
+        type={templateType}
       />
     </div>
   );

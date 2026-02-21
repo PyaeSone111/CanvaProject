@@ -102,6 +102,59 @@ export interface AssetItem {
   uploadedAt: string;
 }
 
+// ── Published Record ────────────────────────────────────────────────
+export interface PublishedRecord {
+  id: string;
+  type: 'portfolio' | 'page';
+  sourceId: string;
+  slug: string;
+  title: string;
+  description: string;
+  ogImage: string;
+  publishedAt: string;
+  updatedAt: string;
+  isPublished: boolean;
+  customDomain?: string;
+  theme: ThemeSettings;
+  seo: SeoSettings;
+}
+
+export interface ThemeSettings {
+  fontFamily: string;
+  baseFontSize: number;
+  bgColor: string;
+  textColor: string;
+  accentColor: string;
+  buttonRadius: number;
+  buttonStyle: 'solid' | 'outline';
+  sectionPadding: 'compact' | 'normal' | 'spacious';
+}
+
+export interface SeoSettings {
+  title: string;
+  description: string;
+  ogImage: string;
+}
+
+// ── Template ────────────────────────────────────────────────────────
+export interface TemplateDefinition {
+  id: string;
+  name: string;
+  description: string;
+  type: 'portfolio' | 'page';
+  variant: string;
+  thumbnail: string;
+  theme: ThemeSettings;
+  data: PortfolioDocument | PageDocument;
+}
+
+// ── Analytics ───────────────────────────────────────────────────────
+export interface PageView {
+  slug: string;
+  date: string; // YYYY-MM-DD
+  views: number;
+}
+
 // ── Shared utility ──────────────────────────────────────────────────
 export type DocumentType = 'design' | 'portfolio' | 'page';
 

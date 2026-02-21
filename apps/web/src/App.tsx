@@ -11,6 +11,8 @@ import { PortfolioPreviewPage } from '@/pages/PortfolioPreviewPage';
 import { PublishedDesignPage } from '@/pages/PublishedDesignPage';
 import { PublishedPortfolioPage } from '@/pages/PublishedPortfolioPage';
 import { PublishedPagePage } from '@/pages/PublishedPagePage';
+import { PortfolioPublicPage } from '@/pages/PortfolioPublicPage';
+import { SitePublicPage } from '@/pages/SitePublicPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
@@ -35,10 +37,14 @@ function App() {
       <Route path="/preview/portfolio/:id" element={<PortfolioPreviewPage />} />
       <Route path="/preview/page/:id" element={<PagePreviewPage />} />
 
-      {/* Public published routes */}
+      {/* Public published routes (legacy ID-based) */}
       <Route path="/d/:id" element={<PublishedDesignPage />} />
       <Route path="/portfolio/:id" element={<PublishedPortfolioPage />} />
-      <Route path="/p/:slug" element={<PublishedPagePage />} />
+
+      {/* New slug-based public routes */}
+      <Route path="/p/:slug" element={<PortfolioPublicPage />} />
+      <Route path="/p/:slug/:pageSlug" element={<PortfolioPublicPage />} />
+      <Route path="/site/:slug" element={<SitePublicPage />} />
 
       {/* 404 */}
       <Route path="*" element={<NotFoundPage />} />

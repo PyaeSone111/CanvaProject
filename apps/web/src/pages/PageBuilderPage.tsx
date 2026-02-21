@@ -7,7 +7,7 @@ import { PageTreePanel } from '@/components/pagebuilder/PageTreePanel';
 import { BlockPropertiesPanel } from '@/components/pagebuilder/BlockPropertiesPanel';
 import { PageCanvas } from '@/components/pagebuilder/PageCanvas';
 import { AssetsPanel } from '@/components/editor/AssetsPanel';
-import { PublishDialog } from '@/components/editor/PublishDialog';
+import { PublishModal } from '@/components/editor/PublishModal';
 import { ExportDialog } from '@/components/editor/ExportDialog';
 import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
 import { downloadJson } from '@/lib/export';
@@ -92,8 +92,6 @@ export function PageBuilderPage() {
     }
   };
 
-  const publicUrl = `${window.location.origin}/p/${doc.slug}`;
-
   return (
     <>
     <EditorShell
@@ -157,15 +155,14 @@ export function PageBuilderPage() {
       />
     </EditorShell>
 
-    <PublishDialog
+    <PublishModal
       open={publishOpen}
       onOpenChange={setPublishOpen}
-      docType="page"
-      docName={doc.name}
-      isPublished={doc.published}
-      publicUrl={publicUrl}
-      onPublish={() => store.publish(doc.id)}
-      onUnpublish={() => store.unpublish(doc.id)}
+      sourceId={doc.id}
+      sourceType="page"
+      sourceName={doc.name}
+      onSourcePublish={() => store.publish(doc.id)}
+      onSourceUnpublish={() => store.unpublish(doc.id)}
     />
     <ExportDialog
       open={exportOpen}

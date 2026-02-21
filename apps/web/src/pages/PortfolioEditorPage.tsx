@@ -7,7 +7,7 @@ import { AddSectionPanel } from '@/components/portfolio/AddSectionPanel';
 import { SectionCard } from '@/components/portfolio/SectionCard';
 import { SectionPreview } from '@/components/portfolio/SectionPreview';
 import { SectionPropertiesPanel } from '@/components/portfolio/SectionPropertiesPanel';
-import { PublishDialog } from '@/components/editor/PublishDialog';
+import { PublishModal } from '@/components/editor/PublishModal';
 import { ExportDialog } from '@/components/editor/ExportDialog';
 import { KeyboardShortcutsDialog } from '@/components/editor/KeyboardShortcutsDialog';
 import { downloadJson } from '@/lib/export';
@@ -72,22 +72,26 @@ export function PortfolioEditorPage() {
 
   const handleSectionDragEnd = useCallback(
     (event: DragEndEvent) => {
-      if (!activePage) return;
+      const currentDoc = store.currentDocument();
+      const currentPage = currentDoc?.pages.find((p) => p.id === store.activePageId) || currentDoc?.pages[0] || null;
+      if (!currentPage) return;
       const { active, over } = event;
       if (!over || active.id === over.id) return;
-      const oldIndex = activePage.sections.findIndex((s) => s.id === active.id);
-      const newIndex = activePage.sections.findIndex((s) => s.id === over.id);
-      const reordered = arrayMove(activePage.sections, oldIndex, newIndex);
-      store.reorderSections(activePage.id, reordered);
+      const oldIndex = currentPage.sections.findIndex((s) => s.id === active.id);
+      const newIndex = currentPage.sections.findIndex((s) => s.id === over.id);
+      const reordered = arrayMove(currentPage.sections, oldIndex, newIndex);
+      store.reorderSections(currentPage.id, reordered);
     },
-    [activePage, store]
+    [store]
   );
 
   const handleDeleteSelected = useCallback(() => {
-    if (activePage && store.selectedSectionId) {
-      store.removeSection(activePage.id, store.selectedSectionId);
+    const currentDoc = store.currentDocument();
+    const currentPage = currentDoc?.pages.find((p) => p.id === store.activePageId) || currentDoc?.pages[0] || null;
+    if (currentPage && store.selectedSectionId) {
+      store.removeSection(currentPage.id, store.selectedSectionId);
     }
-  }, [activePage, store]);
+  }, [store]);
 
   if (!doc) {
     return (
@@ -222,8 +226,6 @@ export function PortfolioEditorPage() {
     </div>
   );
 
-  const publicUrl = `${window.location.origin}/portfolio/${doc.id}`;
-
   return (
     <>
     <EditorShell
@@ -285,15 +287,14 @@ export function PortfolioEditorPage() {
       {centerContent}
     </EditorShell>
 
-    <PublishDialog
+    <PublishModal
       open={publishOpen}
       onOpenChange={setPublishOpen}
-      docType="portfolio"
-      docName={doc.name}
-      isPublished={doc.published}
-      publicUrl={publicUrl}
-      onPublish={() => store.publish(doc.id)}
-      onUnpublish={() => store.unpublish(doc.id)}
+      sourceId={doc.id}
+      sourceType="portfolio"
+      sourceName={doc.name}
+      onSourcePublish={() => store.publish(doc.id)}
+      onSourceUnpublish={() => store.unpublish(doc.id)}
     />
     <ExportDialog
       open={exportOpen}
