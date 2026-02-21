@@ -24,6 +24,8 @@ interface PageBuilderState {
   create: (partial?: Partial<PageDocument>) => PageDocument;
   update: (id: string, updates: Partial<PageDocument>) => void;
   remove: (id: string) => void;
+  publish: (id: string) => void;
+  unpublish: (id: string) => void;
   setCurrentId: (id: string | null) => void;
   currentDocument: () => PageDocument | undefined;
 
@@ -136,6 +138,24 @@ export const usePageBuilderStore = create<PageBuilderState>((set, get) => ({
     set((s) => ({
       documents: s.documents.filter((d) => d.id !== id),
       currentId: s.currentId === id ? null : s.currentId,
+    }));
+  },
+
+  publish: (id) => {
+    pageApi.update(id, { published: true });
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, published: true } : d
+      ),
+    }));
+  },
+
+  unpublish: (id) => {
+    pageApi.update(id, { published: false });
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, published: false } : d
+      ),
     }));
   },
 

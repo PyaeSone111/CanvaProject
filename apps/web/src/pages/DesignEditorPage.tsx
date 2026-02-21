@@ -6,12 +6,14 @@ import { AddPanel } from '@/components/editor/AddPanel';
 import { LayersPanel } from '@/components/editor/LayersPanel';
 import { PropertiesPanel } from '@/components/editor/PropertiesPanel';
 import { MockCanvas } from '@/components/editor/MockCanvas';
+import { PublishDialog } from '@/components/editor/PublishDialog';
 
 export function DesignEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const store = useDesignStore();
   const [zoom, setZoom] = useState(80);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   // Load data and set current doc
   useEffect(() => {
@@ -49,7 +51,10 @@ export function DesignEditorPage() {
 
   const selectedObject = doc.objects.find((o) => o.id === store.selectedObjectId) || null;
 
+  const publicUrl = `${window.location.origin}/d/${doc.id}`;
+
   return (
+    <>
     <EditorShell
       title={doc.name}
       onTitleChange={(name) => store.update(doc.id, { name })}
@@ -62,6 +67,8 @@ export function DesignEditorPage() {
       zoom={zoom}
       onZoomChange={setZoom}
       onAutoSave={handleAutoSave}
+      onPreview={() => navigate(`/preview/design/${doc.id}`)}
+      onPublish={() => setPublishOpen(true)}
       addPanel={<AddPanel onAddObject={store.addObject} />}
       layersPanel={
         <LayersPanel
@@ -99,5 +106,17 @@ export function DesignEditorPage() {
         zoom={zoom}
       />
     </EditorShell>
+
+    <PublishDialog
+      open={publishOpen}
+      onOpenChange={setPublishOpen}
+      docType="design"
+      docName={doc.name}
+      isPublished={doc.published}
+      publicUrl={publicUrl}
+      onPublish={() => store.publish(doc.id)}
+      onUnpublish={() => store.unpublish(doc.id)}
+    />
+    </>
   );
 }

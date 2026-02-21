@@ -21,6 +21,8 @@ interface DesignState {
   update: (id: string, updates: Partial<DesignDocument>) => void;
   remove: (id: string) => void;
   duplicate: (id: string) => DesignDocument | undefined;
+  publish: (id: string) => void;
+  unpublish: (id: string) => void;
   setCurrentId: (id: string | null) => void;
   selectObject: (id: string | null) => void;
 
@@ -85,6 +87,24 @@ export const useDesignStore = create<DesignState>((set, get) => ({
       set((s) => ({ documents: [doc, ...s.documents] }));
     }
     return doc;
+  },
+
+  publish: (id) => {
+    designApi.update(id, { published: true });
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, published: true } : d
+      ),
+    }));
+  },
+
+  unpublish: (id) => {
+    designApi.update(id, { published: false });
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, published: false } : d
+      ),
+    }));
   },
 
   setCurrentId: (id) => {

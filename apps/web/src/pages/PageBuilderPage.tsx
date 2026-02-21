@@ -6,6 +6,7 @@ import { AddBlockPanel } from '@/components/pagebuilder/AddBlockPanel';
 import { PageTreePanel } from '@/components/pagebuilder/PageTreePanel';
 import { BlockPropertiesPanel } from '@/components/pagebuilder/BlockPropertiesPanel';
 import { PageCanvas } from '@/components/pagebuilder/PageCanvas';
+import { PublishDialog } from '@/components/editor/PublishDialog';
 import type { RowNode, BlockType } from '@/types';
 
 export function PageBuilderPage() {
@@ -13,6 +14,7 @@ export function PageBuilderPage() {
   const navigate = useNavigate();
   const store = usePageBuilderStore();
   const [zoom, setZoom] = useState(100);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   useEffect(() => {
     store.loadAll();
@@ -73,7 +75,10 @@ export function PageBuilderPage() {
     }
   };
 
+  const publicUrl = `${window.location.origin}/p/${doc.slug}`;
+
   return (
+    <>
     <EditorShell
       title={doc.name}
       onTitleChange={(name) => store.update(doc.id, { name })}
@@ -87,6 +92,7 @@ export function PageBuilderPage() {
       onZoomChange={setZoom}
       onAutoSave={handleAutoSave}
       onPreview={() => navigate(`/preview/page/${doc.id}`)}
+      onPublish={() => setPublishOpen(true)}
       addPanel={
         <AddBlockPanel
           onAddRow={store.addRow}
@@ -128,5 +134,17 @@ export function PageBuilderPage() {
         zoom={zoom}
       />
     </EditorShell>
+
+    <PublishDialog
+      open={publishOpen}
+      onOpenChange={setPublishOpen}
+      docType="page"
+      docName={doc.name}
+      isPublished={doc.published}
+      publicUrl={publicUrl}
+      onPublish={() => store.publish(doc.id)}
+      onUnpublish={() => store.unpublish(doc.id)}
+    />
+    </>
   );
 }

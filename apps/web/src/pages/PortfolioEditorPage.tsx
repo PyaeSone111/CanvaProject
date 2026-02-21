@@ -7,6 +7,7 @@ import { AddSectionPanel } from '@/components/portfolio/AddSectionPanel';
 import { SectionCard } from '@/components/portfolio/SectionCard';
 import { SectionPreview } from '@/components/portfolio/SectionPreview';
 import { SectionPropertiesPanel } from '@/components/portfolio/SectionPropertiesPanel';
+import { PublishDialog } from '@/components/editor/PublishDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -17,6 +18,7 @@ export function PortfolioEditorPage() {
   const navigate = useNavigate();
   const store = usePortfolioStore();
   const [zoom, setZoom] = useState(100);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   useEffect(() => {
     store.loadAll();
@@ -170,7 +172,10 @@ export function PortfolioEditorPage() {
     </div>
   );
 
+  const publicUrl = `${window.location.origin}/portfolio/${doc.id}`;
+
   return (
+    <>
     <EditorShell
       title={doc.name}
       onTitleChange={(name) => store.update(doc.id, { name })}
@@ -183,6 +188,8 @@ export function PortfolioEditorPage() {
       zoom={zoom}
       onZoomChange={setZoom}
       onAutoSave={handleAutoSave}
+      onPreview={() => navigate(`/preview/portfolio/${doc.id}`)}
+      onPublish={() => setPublishOpen(true)}
       addPanel={leftAddPanel}
       layersPanel={
         <ScrollArea className="h-full">
@@ -215,5 +222,17 @@ export function PortfolioEditorPage() {
     >
       {centerContent}
     </EditorShell>
+
+    <PublishDialog
+      open={publishOpen}
+      onOpenChange={setPublishOpen}
+      docType="portfolio"
+      docName={doc.name}
+      isPublished={doc.published}
+      publicUrl={publicUrl}
+      onPublish={() => store.publish(doc.id)}
+      onUnpublish={() => store.unpublish(doc.id)}
+    />
+    </>
   );
 }

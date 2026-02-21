@@ -24,6 +24,8 @@ interface PortfolioState {
   create: (partial?: Partial<PortfolioDocument>) => PortfolioDocument;
   update: (id: string, updates: Partial<PortfolioDocument>) => void;
   remove: (id: string) => void;
+  publish: (id: string) => void;
+  unpublish: (id: string) => void;
   setCurrentId: (id: string | null) => void;
   currentDocument: () => PortfolioDocument | undefined;
 
@@ -124,6 +126,24 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     set((s) => ({
       documents: s.documents.filter((d) => d.id !== id),
       currentId: s.currentId === id ? null : s.currentId,
+    }));
+  },
+
+  publish: (id) => {
+    portfolioApi.update(id, { published: true });
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, published: true } : d
+      ),
+    }));
+  },
+
+  unpublish: (id) => {
+    portfolioApi.update(id, { published: false });
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, published: false } : d
+      ),
     }));
   },
 
